@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>English LEARNING point</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3f6fb;--card:#fff;--tx:#10213f;--mu:#62708a;--pri:#0b2a5b;--ac:#2f9be8;--ok:#1a9d4f;--wa:#e8860c;--rd:#d93a3a;--yl:#c9a100;--bd:#dde4ef}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0b1220;--card:#141e33;--tx:#e8eefb;--mu:#93a1bd;--pri:#2f9be8;--ac:#5bb5f5;--bd:#25314d}}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+#app{max-width:640px;margin:0 auto;min-height:100%;padding:0 14px 84px}
+h1,h2,h3{margin:0}h2{font-size:18px;margin:14px 0 8px}
+.top{display:flex;justify-content:space-between;align-items:center;padding:14px 0 4px}
+.brand{font-weight:800;color:var(--pri);font-size:19px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin:8px 0}
+.hero{background:linear-gradient(135deg,#0b2a5b,#2f9be8);color:#fff;border:0}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.mu{color:var(--mu);font-size:13px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat b{display:block;font-size:22px}
+input,select,textarea{width:100%;padding:11px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit;margin:4px 0}
+label{font-size:13px;color:var(--mu)}
+button{font:inherit;border:0;border-radius:10px;padding:10px 14px;background:var(--pri);color:#fff;cursor:pointer}
+button.s{background:var(--bg);color:var(--tx);border:1px solid var(--bd)}button.sm{padding:6px 10px;font-size:13px}
+button.full{width:100%;margin-top:8px}
+.tag{padding:2px 9px;border-radius:99px;font-size:12px;color:#fff;font-weight:600;white-space:nowrap}
+.PAID{background:var(--ok)}.PENDING{background:var(--yl)}.OVERDUE{background:var(--rd)}.PARTIAL{background:var(--wa)}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--bd);display:flex;overflow-x:auto;padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));z-index:5}
+nav button{flex:1 0 auto;background:none;color:var(--mu);padding:4px 10px;font-size:11px;text-align:center}
+nav button.on{color:var(--ac);font-weight:700}nav i{display:block;font-style:normal;font-size:19px}
+#modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:9}
+#modal.on{display:flex}#sheet{background:var(--bg);width:100%;max-width:640px;margin:0 auto;border-radius:18px 18px 0 0;padding:16px 14px calc(18px + env(safe-area-inset-bottom,0px));max-height:88%;overflow:auto}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chips label{display:flex;gap:6px;align-items:center;background:var(--card);border:1px solid var(--bd);border-radius:99px;padding:6px 11px;color:var(--tx)}
+.chips input{width:auto;margin:0}
+.ab button{flex:1;padding:8px 0;background:var(--bg);color:var(--tx);border:1px solid var(--bd)}
+.ab button.on.P{background:var(--ok);color:#fff}.ab button.on.A{background:var(--rd);color:#fff}.ab button.on.L{background:var(--wa);color:#fff}.ab button.on.V{background:var(--ac);color:#fff}
+.login{margin-top:12vh;text-align:center}.err{color:var(--rd);font-size:13px;min-height:18px}
+.cred{font:700 18px ui-monospace,monospace;background:var(--card);padding:10px;border-radius:10px;border:1px dashed var(--ac);margin:8px 0}
+</style></head><body>
+<div id="app"></div><div id="modal" onclick="if(event.target.id==='modal')closeM()"><div id="sheet"></div></div>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});
+const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const dow=d=>new Date(d+'T00:00:00').getDay();
+const inr=n=>'₹'+Math.round(n).toLocaleString('en-IN');
+const uid=()=>Math.random().toString(36).slice(2,9);
+async function sha(s){try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('lp:'+s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return 'x'+btoa(s)}}
+let S=null,me=null,tab='home',ref=null,msg='';
+const KEY='lp_state_v1';
+async function load(){
+  try{const db=await Promise.race([claude.use('db'),new Promise(r=>setTimeout(()=>r(null),4000))]);
+    if(db){ref=db.doc('app/state');const d=await ref.get();if(d.exists&&d.data().json)S=JSON.parse(d.data().json)}}catch(e){}
+  if(!S){try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}}
+  if(!S){S={users:[{id:'admin',name:'Owner',role:'admin',ph:await sha('admin123'),must:true}],classes:[],att:{},pays:[],notices:[],seq:0}}
+  try{const u=sessionStorage.getItem('lp_me');if(u)me=S.users.find(x=>x.id===u)}catch(e){}
+  render();
+}
+async function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+  if(ref){try{await ref.set({json:JSON.stringify(S)})}catch(e){}}
+}
+function closeM(){$('#modal').classList.remove('on')}
+function modal(h){$('#sheet').innerHTML=h;$('#modal').classList.add('on')}
+async function login(){
+  const id=$('#li').value.trim().toLowerCase(),h=await sha($('#lp').value);
+  const u=S.users.find(x=>x.id.toLowerCase()===id&&x.ph===h&&!x.archived);
+  if(!u){$('#le').textContent='Wrong ID or password';return}
+  me=u;try{sessionStorage.setItem('lp_me',u.id)}catch(e){}tab='home';render();
+}
+function logout(){me=null;try{sessionStorage.removeItem('lp_me')}catch(e){}render()}
+const staff=()=>me.role!=='student';
+const cls=id=>S.classes.find(c=>c.id===id);
+const stu=()=>S.users.filter(u=>u.role==='student'&&!u.archived);
+const classesOn=(u,d)=>(u.classes||[]).map(cls).filter(c=>c&&c.days.includes(dow(d)));
+function months(j){const a=new Date(j+'T00:00:00'),b=new Date(today()+'T00:00:00');return Math.max(1,(b.getFullYear()-a.getFullYear())*12+b.getMonth()-a.getMonth()+1)}
+function fee(u,c){const due=months(u.joined)*c.fee,paid=S.pays.filter(p=>p.sid===u.id&&p.cid===c.id).reduce((a,p)=>a+p.amt,0),bal=due-paid;
+  const late=months(u.joined)>1||+today().slice(8)>5;
+  const st=bal<=0?'PAID':paid>0?'PARTIAL':late?'OVERDUE':'PENDING';return{due,paid,bal,st}}
+function attPct(u){const k=Object.entries(S.att).filter(([k])=>k.endsWith('|'+u.id));if(!k.length)return null;
+  return Math.round(100*k.filter(([,v])=>v==='P'||v==='L').length/k.length)}
+
+function render(){
+  const A=$('#app');
+  if(!S){A.innerHTML='<div class="login"><h2>Loading…</h2></div>';return}
+  if(!me){A.innerHTML=`<div class="login"><div class="brand" style="font-size:22px">🎓 English LEARNING point</div><p class="mu">Smart Tuition Management</p>
+  <div class="card" style="text-align:left"><label>ID (Student ID, Teacher ID or admin)</label><input id="li" autocapitalize="off" autocomplete="username">
+  <label>Password</label><input id="lp" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()">
+  <div class="err" id="le"></div><button class="full" onclick="login()">Login</button></div>
+  <p class="mu">First time? Owner ID: <b>admin</b> · password: <b>admin123</b></p></div>`;return}
+  if(me.must){A.innerHTML=`<div class="login"><h2>Set a new password</h2><p class="mu">Please change your temporary password to continue.</p>
+  <div class="card" style="text-align:left"><input id="np" type="password" placeholder="New password (min 6)"><div class="err" id="le"></div><button class="full" onclick="chpw()">Save password</button></div></div>`;return}
+  const tabs=staff()?[['home','🏠','Home'],['students','👥','Students'],['classes','📚','Classes'],['att','✅','Attend'],['fees','💰','Fees'],['notes','📢','Notices']].concat(me.role==='admin'?[['team','🧑‍🏫','Team']]:[]):[['home','🏠','Home'],['mycls','📚','Classes'],['att','✅','Attendance'],['fees','💰','Fees'],['notes','📢','Notices']];
+  A.innerHTML=`<div class="top"><div><div class="brand">🎓 English LEARNING point</div><div class="mu">${esc(me.name)} · ${me.role}</div></div><button class="s sm" onclick="logout()">Logout</button></div><div id="v"></div>
+  <nav>${tabs.map(t=>`<button class="${tab===t[0]?'on':''}" onclick="tab='${t[0]}';render()"><i>${t[1]}</i>${t[2]}</button>`).join('')}</nav>`;
+  $('#v').innerHTML=(V[tab]||V.home)();
+}
+async function chpw(){const p=$('#np').value;if(p.length<6){$('#le').textContent='At least 6 characters';return}
+  me.ph=await sha(p);me.must=false;await save();render()}
+
+const V={};
+V.home=()=>staff()?staffHome():stuHome();
+function noticeList(n){return S.notices.slice(0,n).map(x=>`<div class="card"><div>${esc(x.text)}</div><div class="mu">${x.date} · ${esc(x.by)}</div></div>`).join('')||'<div class="card mu">No notices yet.</div>'}
+function staffHome(){
+  const t=today(),cs=S.classes.filter(c=>c.days.includes(dow(t))&&(me.role==='admin'||!c.teacher||c.teacher===me.id));
+  const all=S.users.filter(u=>u.role==='student'&&!u.archived);
+  let pend=0,over=0,coll=0;const mo=t.slice(0,7);
+  all.forEach(u=>(u.classes||[]).map(cls).filter(Boolean).forEach(c=>{const f=fee(u,c);if(f.bal>0){pend+=f.bal;if(f.st==='OVERDUE')over+=f.bal}}));
+  S.pays.filter(p=>p.date===t).forEach(p=>coll+=p.amt);
+  const unmarked=cs.filter(c=>!all.some(u=>S.att[t+'|'+c.id+'|'+u.id]));
+  return `<div class="card hero"><div class="mu" style="color:#dbe9ff">${new Date(t+'T00:00').toDateString()}</div><h2 style="margin:4px 0">${cs.length} class${cs.length==1?'':'es'} today</h2><div>${unmarked.length} awaiting attendance</div></div>
+  <div class="grid"><div class="card stat"><b>${all.length}</b><span class="mu">Students</span></div><div class="card stat"><b>${inr(coll)}</b><span class="mu">Collected today</span></div>
+  <div class="card stat"><b>${inr(pend)}</b><span class="mu">Pending fees</span></div><div class="card stat"><b style="color:var(--rd)">${inr(over)}</b><span class="mu">Overdue</span></div></div>
+  <h2>Today’s timetable</h2>${cs.map(c=>`<div class="card row"><div><b>${esc(c.name)}</b><div class="mu">${c.start}–${c.end} · ${all.filter(u=>(u.classes||[]).includes(c.id)).length} students</div></div><button class="sm" onclick="tab='att';attC='${c.id}';render()">Attendance</button></div>`).join('')||'<div class="card mu">No classes today.</div>'}
+  <h2>Notices</h2>${noticeList(3)}`;
+}
+function stuHome(){
+  const t=today(),cs=classesOn(me,t),p=attPct(me);
+  const fs=(me.classes||[]).map(cls).filter(Boolean).map(c=>({c,...fee(me,c)}));
+  const bal=fs.reduce((a,f)=>a+Math.max(0,f.bal),0),d=+t.slice(8);
+  let alert='';if(bal>0)alert=fs.some(f=>f.st==='OVERDUE')?`<div class="card" style="border-color:var(--rd)">🔴 Fee overdue: ${inr(bal)}</div>`:d>=2&&d<=5?`<div class="card" style="border-color:var(--wa)">🟠 Fee due on the 5th: ${inr(bal)}</div>`:'';
+  let nxt='';for(let i=1;i<=7&&!nxt;i++){const dt=new Date(new Date(t+'T00:00').getTime()+i*864e5).toLocaleDateString('en-CA');const l=classesOn(me,dt);if(l.length)nxt=`${DN[dow(dt)]} ${l[0].start} · ${esc(l[0].name)}`}
+  return `${cs.length?cs.map(c=>`<div class="card hero"><div style="font-weight:800">YOUR CLASS IS TODAY!</div><h2 style="margin:4px 0">${esc(c.name)}</h2><div>${c.start} – ${c.end}${c.room?' · '+esc(c.room):''}</div><div style="opacity:.85">Status: Upcoming</div></div>`).join(''):'<div class="card hero"><h2>No class today. Enjoy your day! 🎉</h2></div>'}
+  ${alert}<div class="grid"><div class="card stat"><b>${p==null?'—':p+'%'}</b><span class="mu">Attendance</span></div><div class="card stat"><b>${inr(bal)}</b><span class="mu">Fee balance</span></div></div>
+  <div class="card"><span class="mu">Next class</span><div>${nxt||'None this week'}</div></div><h2>Notices</h2>${noticeList(3)}`;
+}
+V.mycls=()=>'<h2>My classes</h2>'+((me.classes||[]).map(cls).filter(Boolean).map(c=>`<div class="card"><b>${esc(c.name)}</b><div class="mu">${c.days.map(d=>DN[d]).join(', ')} · ${c.start}–${c.end}${c.room?' · '+esc(c.room):''}</div></div>`).join('')||'<div class="card mu">You are not enrolled in any class yet.</div>');
+
+/* Students */
+let q='';
+V.students=()=>`<div class="row"><h2>Students</h2><button class="sm" onclick="addStu()">+ Add</button></div><input placeholder="Search name or ID" value="${esc(q)}" oninput="q=this.value;$('#sl').innerHTML=stuList()">
+<div id="sl">${stuList()}</div>`;
+function stuList(){const k=q.toLowerCase();return stu().filter(u=>!k||u.name.toLowerCase().includes(k)||u.id.toLowerCase().includes(k)).map(u=>`<div class="card row" onclick="stuDetail('${u.id}')"><div><b>${esc(u.name)}</b><div class="mu">${u.id} · ${(u.classes||[]).map(cls).filter(Boolean).map(c=>esc(c.name)).join(', ')||'No class'}</div></div><span class="mu">›</span></div>`).join('')||'<div class="card mu">No students found.</div>'}
+function chips(sel){return S.classes.length?`<div class="chips">${S.classes.map(c=>`<label><input type="checkbox" class="cc" value="${c.id}" ${sel.includes(c.id)?'checked':''}>${esc(c.name)}</label>`).join('')}</div>`:'<div class="mu">Create a class first (Classes tab).</div>'}
+const picked=()=>[...document.querySelectorAll('.cc:checked')].map(x=>x.value);
+function addStu(){modal(`<h2>New student</h2><label>Full name</label><input id="f1"><label>Father / Guardian</label><input id="f2"><label>Mobile / WhatsApp</label><input id="f3" type="tel">
+<label>School / College</label><input id="f4"><label>Admission date</label><input id="f5" type="date" value="${today()}"><label>Enroll in classes (one or more)</label>${chips([])}
+<button class="full" onclick="regStu()">REGISTER STUDENT</button>`)}
+async function regStu(){
+  const name=$('#f1').value.trim();if(!name)return;
+  S.seq=(S.seq||0)+1;const id='LP'+today().slice(0,4)+String(S.seq).padStart(3,'0');
+  const pw=Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'[b%54]).join('');
+  S.users.push({id,name,role:'student',ph:await sha(pw),must:true,father:$('#f2').value,phone:$('#f3').value,school:$('#f4').value,joined:$('#f5').value||today(),classes:picked()});
+  await save();
+  modal(`<h2>✅ ${esc(name)} registered</h2><p class="mu">Share these login details with the student. The password is shown only once.</p><div class="cred">ID: ${id}<br>Password: ${pw}</div>
+  <button class="full" onclick="navigator.clipboard&&navigator.clipboard.writeText('English LEARNING point login\\nID: ${id}\\nPassword: ${pw}');this.textContent='Copied ✓'">Copy details</button><button class="s full" onclick="closeM();render()">Done</button>`);
+}
+function stuDetail(id){const u=S.users.find(x=>x.id===id);
+  modal(`<h2>${esc(u.name)}</h2><div class="mu">${u.id} · ${esc(u.phone||'')} · Guardian: ${esc(u.father||'—')}</div><label>Enrolled classes</label>${chips(u.classes||[])}
+  <button class="full" onclick="saveEnr('${id}')">Save classes</button><button class="s full" onclick="resetPw('${id}')">Reset password</button><button class="s full" style="color:var(--rd)" onclick="archive('${id}')">Archive student (keeps history)</button>`)}
+async function saveEnr(id){S.users.find(x=>x.id===id).classes=picked();await save();closeM();render()}
+async function resetPw(id){const pw=Math.random().toString(36).slice(2,10);const u=S.users.find(x=>x.id===id);u.ph=await sha(pw);u.must=true;await save();modal(`<h2>New password</h2><div class="cred">ID: ${id}<br>Password: ${pw}</div><button class="full" onclick="closeM()">Done</button>`)}
+async function archive(id){if(!confirm('Archive this student?'))return;S.users.find(x=>x.id===id).archived=true;await save();closeM();render()}
+
+/* Classes */
+V.classes=()=>`<div class="row"><h2>Classes</h2><button class="sm" onclick="addCls()">+ New</button></div>`+(S.classes.map(c=>`<div class="card"><div class="row"><b>${esc(c.name)}</b><span>${inr(c.fee)}/mo</span></div><div class="mu">${c.days.map(d=>DN[d]).join(', ')} · ${c.start}–${c.end}${c.room?' · '+esc(c.room):''}</div><div class="mu">${stu().filter(u=>(u.classes||[]).includes(c.id)).length} students</div><div class="row" style="justify-content:flex-start"><button class="s sm" onclick="enrol('${c.id}')">Add students</button><button class="s sm" onclick="delCls('${c.id}')">Delete</button></div></div>`).join('')||'<div class="card mu">No classes yet. Tap + New.</div>');
+function addCls(){modal(`<h2>New class</h2><label>Name (e.g. MS Excel)</label><input id="c1"><label>Days</label><div class="chips">${DN.map((d,i)=>`<label><input type="checkbox" class="dd" value="${i}">${d}</label>`).join('')}</div>
+<div class="grid"><div><label>Start</label><input id="c2" type="time" value="16:00"></div><div><label>End</label><input id="c3" type="time" value="17:00"></div></div>
+<label>Monthly fee (₹)</label><input id="c4" type="number" inputmode="numeric"><label>Room / online link</label><input id="c5"><button class="full" onclick="saveCls()">Save class</button>`)}
+async function saveCls(){const n=$('#c1').value.trim(),days=[...document.querySelectorAll('.dd:checked')].map(x=>+x.value);if(!n||!days.length)return;
+  S.classes.push({id:uid(),name:n,days,start:$('#c2').value,end:$('#c3').value,fee:+$('#c4').value||0,room:$('#c5').value,teacher:me.role==='teacher'?me.id:''});await save();closeM();render()}
+function enrol(cid){modal(`<h2>Add students to ${esc(cls(cid).name)}</h2><div class="chips" style="flex-direction:column;align-items:stretch">${stu().map(u=>`<label><input type="checkbox" class="ss" value="${u.id}" ${(u.classes||[]).includes(cid)?'checked':''}>${esc(u.name)} · ${u.id}</label>`).join('')||'<span class="mu">No students yet</span>'}</div><button class="full" onclick="saveEnrol('${cid}')">Save</button>`)}
+async function saveEnrol(cid){const on=[...document.querySelectorAll('.ss:checked')].map(x=>x.value);
+  stu().forEach(u=>{u.classes=(u.classes||[]).filter(x=>x!==cid);if(on.includes(u.id))u.classes.push(cid)});await save();closeM();render()}
+async function delCls(id){if(!confirm('Delete this class?'))return;S.classes=S.classes.filter(c=>c.id!==id);stu().forEach(u=>u.classes=(u.classes||[]).filter(x=>x!==id));await save();render()}
+
+/* Attendance */
+let attC='',attD=today();
+V.att=()=>staff()?staffAtt():stuAtt();
+function staffAtt(){
+  if(!attC&&S.classes[0])attC=S.classes[0].id;
+  const rows=stu().filter(u=>(u.classes||[]).includes(attC));
+  return `<h2>Attendance</h2><select onchange="attC=this.value;render()">${S.classes.map(c=>`<option value="${c.id}" ${c.id===attC?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
+  <input type="date" value="${attD}" onchange="attD=this.value;render()">`+(rows.map(u=>{const k=attD+'|'+attC+'|'+u.id,v=S.att[k];return `<div class="card"><div class="row"><b>${esc(u.name)}</b><span class="mu">${attPct(u)==null?'':attPct(u)+'%'}</span></div><div class="row ab" style="margin-top:6px">${[['P','Present'],['A','Absent'],['L','Late'],['V','Leave']].map(([c,l])=>`<button class="${v===c?'on '+c:''}" onclick="mark('${k}','${c}')">${l}</button>`).join('')}</div></div>`}).join('')||'<div class="card mu">No students in this class.</div>');
+}
+async function mark(k,v){S.att[k]=v;await save();render()}
+function stuAtt(){const e=Object.entries(S.att).filter(([k])=>k.endsWith('|'+me.id)).sort().reverse(),p=attPct(me);
+  return `<h2>My attendance</h2><div class="card stat"><b>${p==null?'—':p+'%'}</b><span class="mu">Overall</span></div>`+(e.map(([k,v])=>{const[d,c]=k.split('|');return `<div class="card row"><div>${d}<div class="mu">${esc(cls(c)?.name||'')}</div></div><b>${{P:'Present',A:'Absent',L:'Late',V:'Leave'}[v]}</b></div>`}).join('')||'<div class="card mu">No records yet.</div>')}
+
+/* Fees */
+function enrolls(){const r=[];(staff()?stu():[me]).forEach(u=>(u.classes||[]).map(cls).filter(Boolean).forEach(c=>r.push({u,c,...fee(u,c)})));return r}
+V.fees=()=>{const r=enrolls(),mo=today().slice(0,7);
+  const col=S.pays.filter(p=>p.date.startsWith(mo)).reduce((a,p)=>a+p.amt,0);
+  return `<h2>Fees</h2>`+(staff()?`<div class="grid"><div class="card stat"><b>${inr(col)}</b><span class="mu">This month</span></div><div class="card stat"><b>${inr(r.reduce((a,x)=>a+Math.max(0,x.bal),0))}</b><span class="mu">Outstanding</span></div></div>`:'')
+  +(r.map(x=>`<div class="card"><div class="row"><b>${staff()?esc(x.u.name)+' · ':''}${esc(x.c.name)}</b><span class="tag ${x.st}">${x.st==='PARTIAL'?'PARTIALLY PAID':x.st}</span></div><div class="mu">Due ${inr(x.due)} · Paid ${inr(x.paid)} · Balance ${inr(Math.max(0,x.bal))}</div>${staff()&&x.bal>0?`<button class="sm full" onclick="payM('${x.u.id}','${x.c.id}',${x.bal})">Record payment</button>`:''}</div>`).join('')||'<div class="card mu">No fee records.</div>')
+  +(!staff()?'<h2>Payment history</h2>'+(S.pays.filter(p=>p.sid===me.id).reverse().map(p=>`<div class="card row"><div>${p.date}<div class="mu">${esc(cls(p.cid)?.name||'')} · ${p.method}</div></div><b>${inr(p.amt)}</b></div>`).join('')||'<div class="card mu">No payments yet.</div>'):'')};
+function payM(sid,cid,bal){modal(`<h2>Record payment</h2><label>Amount (₹)</label><input id="pa" type="number" inputmode="numeric" value="${bal}"><label>Method</label><select id="pm"><option>Cash</option><option>UPI</option><option>Bank</option></select><button class="full" onclick="pay('${sid}','${cid}')">Save payment</button>`)}
+async function pay(sid,cid){const a=+$('#pa').value;if(!(a>0))return;S.pays.push({id:uid(),sid,cid,amt:a,date:today(),method:$('#pm').value});await save();closeM();render()}
+
+/* Notices */
+V.notes=()=>`<div class="row"><h2>Notices</h2>${staff()?'<button class="sm" onclick="addN()">+ Post</button>':''}</div>${noticeList(50)}`;
+function addN(){modal(`<h2>Post notice</h2><textarea id="nt" rows="4"></textarea><button class="full" onclick="postN()">Post</button>`)}
+async function postN(){const t=$('#nt').value.trim();if(!t)return;S.notices.unshift({text:t,date:today(),by:me.name});await save();closeM();render()}
+
+/* Team */
+V.team=()=>`<div class="row"><h2>Teachers</h2><button class="sm" onclick="addT()">+ Add</button></div>`+(S.users.filter(u=>u.role==='teacher').map(u=>`<div class="card"><b>${esc(u.name)}</b><div class="mu">ID: ${u.id}</div></div>`).join('')||'<div class="card mu">No teachers yet.</div>');
+function addT(){modal(`<h2>New teacher</h2><label>Name</label><input id="t1"><label>Login ID</label><input id="t2" autocapitalize="off"><label>Password</label><input id="t3"><button class="full" onclick="saveT()">Create</button>`)}
+async function saveT(){const n=$('#t1').value.trim(),i=$('#t2').value.trim(),p=$('#t3').value;if(!n||!i||p.length<6||S.users.some(u=>u.id.toLowerCase()===i.toLowerCase()))return;
+  S.users.push({id:i,name:n,role:'teacher',ph:await sha(p),must:true});await save();closeM();render()}
+load();
+</script></body></html>

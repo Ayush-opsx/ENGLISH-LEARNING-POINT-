@@ -1,0 +1,8 @@
+{
+  "appId": "com.learningpoint.app",
+  "appName": "English LEARNING point",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
